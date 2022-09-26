@@ -1,6 +1,8 @@
-import es, {
+import {
+  AST,
   parse,
   simpleTraverse,
+  TSESTree,
   visitorKeys,
 } from '@typescript-eslint/typescript-estree';
 
@@ -58,7 +60,7 @@ interface Subsecond extends Iterable<SubsecondNode> {
   children(selector?: string): Subsecond;
 
   fileName(): string;
-  esNodes(): es.TSESTree.Node[];
+  esNodes(): TSESTree.Node[];
   toNewFile(fileName: string): Subsecond;
 }
 
@@ -233,7 +235,7 @@ Subsecond.fn = Subsecond.prototype = {
   },
 
   esNodes(this: SubsecondThis) {
-    const esNodeList: es.TSESTree.Node[] = [];
+    const esNodeList: TSESTree.Node[] = [];
     for (const ssNode of this) {
       esNodeList.push(ssNode.esNode);
     }
@@ -295,18 +297,14 @@ Subsecond.fn = Subsecond.prototype = {
   },
 } as Subsecond;
 
-type SubsecondNode = { esNode: es.TSESTree.Node; fileName: string };
+type SubsecondNode = { esNode: TSESTree.Node; fileName: string };
 
 const SubsecondInternals = {
   isNotNullish<T>(value: T): value is NonNullable<T> {
     return value !== null && value !== undefined;
   },
 
-  applyRequests(
-    requests: Request[],
-    esNode: es.TSESTree.Node,
-    fileName: string
-  ) {
+  applyRequests(requests: Request[], esNode: TSESTree.Node, fileName: string) {
     return requests.some((request) => {
       const lastRequestPart = request[request.length - 1];
 
@@ -342,7 +340,7 @@ const SubsecondInternals = {
     });
   },
 
-  walk(requests: Request[], esNode: es.TSESTree.Node, fileName: string) {
+  walk(requests: Request[], esNode: TSESTree.Node, fileName: string) {
     const results: SubsecondNode[] = [];
     simpleTraverse(
       esNode,
@@ -444,7 +442,7 @@ const SubsecondInternals = {
       },
     });
 
-    let newNodes: es.TSESTree.Node[];
+    let newNodes: TSESTree.Node[];
     // needs a ({}) wrapper to differentiate between block mode
     if (ssNode.esNode.parent?.type === 'ObjectExpression') {
       const newNode = parse(`({${text}})`, { range: true });
@@ -478,7 +476,7 @@ const SubsecondInternals = {
       if (Array.isArray(children)) {
         for (const childIndex in children) {
           if (Object.is(children[childIndex], ssNode.esNode)) {
-            ((ssNode.esNode.parent as any)[key] as es.TSESTree.Node[]).splice(
+            ((ssNode.esNode.parent as any)[key] as TSESTree.Node[]).splice(
               parseInt(childIndex) + (position === 'before' ? 0 : 1),
               0,
               ...newNodes
@@ -528,7 +526,7 @@ const SubsecondInternals = {
       },
     });
 
-    let replacementNode: es.TSESTree.Node[];
+    let replacementNode: TSESTree.Node[];
     // needs a ({}) wrapper to differentiate between block mode
     if (ssNode.esNode.parent?.type === 'ObjectExpression') {
       const newNode = parse(`({${text}})`, { range: true });
@@ -568,7 +566,7 @@ const SubsecondInternals = {
               return;
             }
 
-            ((ssNode.esNode.parent as any)[key] as es.TSESTree.Node[]).splice(
+            ((ssNode.esNode.parent as any)[key] as TSESTree.Node[]).splice(
               parseInt(childIndex),
               1,
               ...replacementNode
@@ -605,7 +603,7 @@ const SubsecondInternals = {
   },
 };
 Subsecond.sourceTexts = {} as Record<string, string>;
-Subsecond.sourceFiles = {} as Record<string, es.AST<{ range: true }>>;
+Subsecond.sourceFiles = {} as Record<string, AST<{ range: true }>>;
 
 Subsecond.load = function (
   this: typeof Subsecond,
@@ -690,11 +688,11 @@ init = Subsecond.fn.init = function (
 
     return this;
   }
+
+  return this;
 };
 
 init.prototype = Subsecond.fn;
 
-module.exports = Subsecond;
-module.exports.default = Subsecond;
-
-Object.defineProperty(module.exports, '__esModule', { value: true });
+export { Subsecond };
+export default Subsecond;

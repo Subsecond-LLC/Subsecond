@@ -1,6 +1,6 @@
 {
   "name": "subsecond",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A jQuery like syntax for typescript codemod.",
   "keywords": [
     "codemod",
@@ -12,6 +12,7 @@
   "repository": "https://www.github.com/subsecond-llc/subsecond",
   "author": "jonesnxt",
   "license": "MIT",
+  "type": "module",
   "private": false,
   "files": [
     "./lib/index.js",
