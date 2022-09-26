@@ -694,7 +694,7 @@ init = Subsecond.fn.init = function (
 
 init.prototype = Subsecond.fn;
 
-const S = Subsecond;
+module.exports = Subsecond;
+module.exports.default = Subsecond;
 
-export { Subsecond };
-export default S;
+Object.defineProperty(module.exports, '__esModule', { value: true });
