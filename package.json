@@ -1,0 +1,22 @@
+{
+  "name": "subsecond",
+  "version": "0.1.0",
+  "description": "A jQuery like syntax for typescript codemod.",
+  "keywords": ["codemod", "subsecond", "jquery", "jscodeshift", "AST"],
+  "repository": "https://www.github.com/subsecond-llc/subsecond",
+  "author": "jonesnxt",
+  "license": "MIT",
+  "private": false,
+  "files": ["./lib/index.js", "./lib/index.d.ts"],
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "dependencies": {
+    "@typescript-eslint/typescript-estree": "^5.38.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.8.3"
+  },
+  "scripts": {
+    "build": "tsc"
+  }
+}
