@@ -20,9 +20,7 @@ type Selector =
   | SubsecondNode;
 
 interface Subsecond extends Iterable<SubsecondNode> {
-  (this: SubsecondThis, selector?: Selector, context?: Subsecond): [
-    key: SubsecondNode
-  ];
+  (selector?: Selector, context?: Subsecond): Subsecond;
   new (selector?: Selector, context?: Subsecond): Subsecond;
   init: init;
   constructor: typeof Subsecond;
@@ -35,7 +33,7 @@ interface Subsecond extends Iterable<SubsecondNode> {
   name(): string;
   name(newName: string | ((oldName: string) => string)): Subsecond;
 
-  attr(name: string): string | boolean | undefined;
+  attr(name: string): any;
 
   before(newNode: string): Subsecond;
   after(newNode: string): Subsecond;
@@ -244,7 +242,10 @@ Subsecond.fn = Subsecond.prototype = {
 
   toNewFile(this: SubsecondThis, fileName: string) {
     const text = this.text();
-    const newSourceFile = parse(text, { range: true });
+    const newSourceFile = parse(text, {
+      range: true,
+      jsx: SubsecondInternals.isFileNameJSX(fileName),
+    });
     Subsecond.sourceFiles[fileName] = newSourceFile;
     Subsecond.sourceTexts[fileName] = text;
 
@@ -445,7 +446,10 @@ const SubsecondInternals = {
     let newNodes: TSESTree.Node[];
     // needs a ({}) wrapper to differentiate between block mode
     if (ssNode.esNode.parent?.type === 'ObjectExpression') {
-      const newNode = parse(`({${text}})`, { range: true });
+      const newNode = parse(`({${text}})`, {
+        range: true,
+        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+      });
       simpleTraverse(newNode, {
         enter: (node) => {
           node.range[0] += insertPoint - 2;
@@ -457,7 +461,10 @@ const SubsecondInternals = {
       newNodes = (newNode.body[0] as any).expression.properties;
     } else {
       // default case for all others
-      const newNode = parse(text, { range: true });
+      const newNode = parse(text, {
+        range: true,
+        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+      });
       simpleTraverse(newNode, {
         enter: (node) => {
           node.range[0] += insertPoint;
@@ -529,7 +536,10 @@ const SubsecondInternals = {
     let replacementNode: TSESTree.Node[];
     // needs a ({}) wrapper to differentiate between block mode
     if (ssNode.esNode.parent?.type === 'ObjectExpression') {
-      const newNode = parse(`({${text}})`, { range: true });
+      const newNode = parse(`({${text}})`, {
+        range: true,
+        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+      });
       simpleTraverse(newNode, {
         enter: (node) => {
           node.range[0] += start - 2;
@@ -541,7 +551,10 @@ const SubsecondInternals = {
       replacementNode = (newNode.body[0] as any).expression.properties;
     } else {
       // default case for all others
-      const newNode = parse(text, { range: true });
+      const newNode = parse(text, {
+        range: true,
+        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+      });
       simpleTraverse(newNode, {
         enter: (node) => {
           node.range[0] += start;
@@ -601,6 +614,10 @@ const SubsecondInternals = {
       esNode: esNodeName,
     };
   },
+
+  isFileNameJSX(fileName: string) {
+    return fileName.endsWith('.jsx') || fileName.endsWith('.tsx');
+  },
 };
 Subsecond.sourceTexts = {} as Record<string, string>;
 Subsecond.sourceFiles = {} as Record<string, AST<{ range: true }>>;
@@ -614,6 +631,7 @@ Subsecond.load = function (
   for (const fileName in files) {
     this.sourceFiles[fileName] = parse(files[fileName], {
       range: true,
+      jsx: SubsecondInternals.isFileNameJSX(fileName),
     });
   }
 
@@ -622,6 +640,24 @@ Subsecond.load = function (
 
 Subsecond.print = function () {
   return Subsecond.sourceTexts;
+};
+
+Subsecond.getNodeAt = function (pos: number, fileName: string) {
+  const overlappingNodes: TSESTree.Node[] = [];
+  if (Subsecond.sourceFiles[fileName] == null)
+    throw new Error(`File ${fileName} not found in sourceFiles.`);
+
+  simpleTraverse(Subsecond.sourceFiles[fileName], {
+    enter: (node) => {
+      if (node.range[0] <= pos && node.range[1] > pos)
+        overlappingNodes.push(node);
+    },
+  });
+
+  return Subsecond({
+    fileName,
+    esNode: overlappingNodes[overlappingNodes.length - 1],
+  });
 };
 
 interface init {
