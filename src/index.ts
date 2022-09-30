@@ -647,12 +647,16 @@ Subsecond.getNodeAt = function (pos: number, fileName: string) {
   if (Subsecond.sourceFiles[fileName] == null)
     throw new Error(`File ${fileName} not found in sourceFiles.`);
 
-  simpleTraverse(Subsecond.sourceFiles[fileName], {
-    enter: (node) => {
-      if (node.range[0] <= pos && node.range[1] > pos)
-        overlappingNodes.push(node);
+  simpleTraverse(
+    Subsecond.sourceFiles[fileName],
+    {
+      enter: (node) => {
+        if (node.range[0] <= pos && node.range[1] > pos)
+          overlappingNodes.push(node);
+      },
     },
-  });
+    true
+  );
 
   return Subsecond({
     fileName,
