@@ -364,10 +364,10 @@ const SubsecondInternals = {
       return requestParts.map((requestPart) => {
         const trimmedPart = requestPart.trim();
         if (trimmedPart.includes('.')) {
-          const splitTrimmedRequest = request.split('.');
+          const firstDotPosition = trimmedPart.indexOf('.');
           return {
-            kind: splitTrimmedRequest[0],
-            name: splitTrimmedRequest[1],
+            kind: trimmedPart.slice(0, firstDotPosition),
+            name: trimmedPart.slice(firstDotPosition + 1),
           };
         }
         return {
