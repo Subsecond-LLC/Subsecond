@@ -606,13 +606,24 @@ const SubsecondInternals = {
   },
 
   getSSNodeName(ssNode: SubsecondNode): SubsecondNode | null {
+    if (ssNode.esNode.type === TSESTree.AST_NODE_TYPES.JSXElement) {
+      return {
+        fileName: ssNode.fileName,
+        esNode: (ssNode.esNode as any).openingElement.name,
+      };
+    }
+
     // running list of options for name-like properties
     const esNodeName =
+      (ssNode.esNode as any).name ??
       (ssNode.esNode as any).id ??
       (ssNode.esNode as any).key ??
       (ssNode.esNode as any).callee;
 
     if (esNodeName == null) return null;
+
+    // name property of identifiers will be string, they are their own name
+    if (typeof esNodeName === 'string') return ssNode;
 
     return {
       fileName: ssNode.fileName,
