@@ -343,6 +343,9 @@ const SubsecondInternals = {
 
   walk(requests: Request[], esNode: TSESTree.Node, fileName: string) {
     const results: SubsecondNode[] = [];
+
+    // traverse resets root node parent, save it if it exists
+    const parent = esNode.parent;
     simpleTraverse(
       esNode,
       {
@@ -354,6 +357,8 @@ const SubsecondInternals = {
       },
       true
     );
+
+    esNode.parent = parent;
 
     return results;
   },
