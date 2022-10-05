@@ -1,6 +1,7 @@
 # Subsecond
 
 A jQuery like syntax for typescript codemod.
+Try it out: [Subsecond Playground](https://playground.subsecond.app/)
 
 ## An Example
 
