@@ -464,6 +464,20 @@ const SubsecondInternals = {
 
       // TODO Consider the multi element case...
       newNodes = (newNode.body[0] as any).expression.properties;
+    } else if (ssNode.esNode.parent?.type === 'JSXOpeningElement') {
+      const newNode = parse(`<X ${text}/>`, {
+        range: true,
+        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+      });
+      simpleTraverse(newNode, {
+        enter: (node) => {
+          node.range[0] += insertPoint - 3;
+          node.range[1] += insertPoint - 3;
+        },
+      });
+
+      // TODO Consider the multi element case...
+      newNodes = (newNode.body[0] as any).expression.openingElement.attributes;
     } else {
       // default case for all others
       const newNode = parse(text, {
@@ -554,6 +568,21 @@ const SubsecondInternals = {
 
       // TODO Consider the multi element case...
       replacementNode = (newNode.body[0] as any).expression.properties;
+    } else if (ssNode.esNode.parent?.type === 'JSXOpeningElement') {
+      const newNode = parse(`<X ${text}/>`, {
+        range: true,
+        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+      });
+      simpleTraverse(newNode, {
+        enter: (node) => {
+          node.range[0] += start - 3;
+          node.range[1] += start - 3;
+        },
+      });
+
+      // TODO Consider the multi element case...
+      replacementNode = (newNode.body[0] as any).expression.openingElement
+        .attributes;
     } else {
       // default case for all others
       const newNode = parse(text, {
@@ -634,6 +663,14 @@ const SubsecondInternals = {
   isFileNameJSX(fileName: string) {
     return fileName.endsWith('.jsx') || fileName.endsWith('.tsx');
   },
+
+  isSubsecondNode(potentialNode: any): potentialNode is SubsecondNode {
+    return (
+      typeof potentialNode === 'object' &&
+      potentialNode.hasOwnProperty('fileName') &&
+      potentialNode.hasOwnProperty('esNode')
+    );
+  },
 };
 Subsecond.sourceTexts = {} as Record<string, string>;
 Subsecond.sourceFiles = {} as Record<string, AST<{ range: true }>>;
@@ -680,6 +717,13 @@ Subsecond.getNodeAt = function (pos: number, fileName: string) {
   });
 };
 
+Subsecond.isSubsecondObject = function (
+  potentialSubsecondObject: any
+): potentialSubsecondObject is Subsecond {
+  // this comparason should probably be more strict
+  return SubsecondInternals.isSubsecondNode(potentialSubsecondObject[0]);
+};
+
 interface init {
   (this: SubsecondThis, selector?: Selector, context?: Subsecond): void;
 }
@@ -699,12 +743,8 @@ init = Subsecond.fn.init = function (
   }
 
   // duck type check of ssNode instanation method
-  if (
-    typeof selector === 'object' &&
-    selector.hasOwnProperty('fileName') &&
-    selector.hasOwnProperty('esNode')
-  ) {
-    this[0] = selector as SubsecondNode;
+  if (SubsecondInternals.isSubsecondNode(selector)) {
+    this[0] = selector;
     this.length = 1;
 
     return this;
