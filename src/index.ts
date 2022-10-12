@@ -318,6 +318,8 @@ const SubsecondInternals = {
             ))
       ) {
         // the top level request is matched, now we need to parse through parents to match everything else.
+        if(request.length === 1) return true;
+        
         let esNodeParent = esNode.parent;
         let currentRequestPartIndex = request.length - 2;
         while (esNodeParent != null) {
@@ -740,6 +742,8 @@ init = Subsecond.fn.init = function (
       this[i++] = { fileName, esNode: Subsecond.sourceFiles[fileName] };
     }
     (this.length as number) = i;
+
+    return this;
   }
 
   // duck type check of ssNode instanation method

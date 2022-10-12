@@ -1,6 +1,6 @@
 {
   "name": "subsecond",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "A jQuery like syntax for typescript codemod.",
   "keywords": [
     "codemod",
