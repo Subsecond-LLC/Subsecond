@@ -525,6 +525,7 @@ const SubsecondInternals = {
     const start = ssNode.esNode.range[0];
     const end = ssNode.esNode.range[1];
     const delta = text.length - (end - start);
+    const previousText = Subsecond.sourceTexts[ssNode.fileName].slice(start, end);
 
     Subsecond.sourceTexts[ssNode.fileName] =
       Subsecond.sourceTexts[ssNode.fileName].slice(0, start) +
@@ -585,6 +586,24 @@ const SubsecondInternals = {
       // TODO Consider the multi element case...
       replacementNode = (newNode.body[0] as any).expression.openingElement
         .attributes;
+    } else if(ssNode.esNode.parent?.type === 'TemplateLiteral' && ssNode.esNode.type === 'TemplateElement') {
+      const textPrefix = previousText[0] === '`' ? '    ' : '`${0';
+      const textPostfix = previousText[previousText.length - 1] === '`' ? '   ' : '0}`';
+
+      const newNode = parse(`${textPrefix}${text}${textPostfix}`, {
+        range: true,
+        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+      });
+      simpleTraverse(newNode, {
+        enter: (node) => {
+          node.range[0] += start - 4;
+          node.range[1] += start - 4;
+        },
+      });
+
+      // At the moment can only direct replace template literal
+      // TODO(jones) expand this to the generic case
+      replacementNode = (newNode.body[0] as any).expression.quasis[0];
     } else {
       // default case for all others
       const newNode = parse(text, {
@@ -737,13 +756,7 @@ init = Subsecond.fn.init = function (
   context?: Subsecond
 ): [key: SubsecondNode] {
   if (selector === undefined) {
-    let i = 0;
-    for (const fileName in Subsecond.sourceFiles) {
-      this[i++] = { fileName, esNode: Subsecond.sourceFiles[fileName] };
-    }
-    (this.length as number) = i;
-
-    return this;
+    selector = 'Program'
   }
 
   // duck type check of ssNode instanation method
