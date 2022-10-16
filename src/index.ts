@@ -807,5 +807,9 @@ init = Subsecond.fn.init = function (
 
 init.prototype = Subsecond.fn;
 
-export { Subsecond };
 export default Subsecond;
+
+module.exports = Subsecond;
+module.exports.default = Subsecond;
+
+Object.defineProperty(module.exports, '__esModule', {value: true});
