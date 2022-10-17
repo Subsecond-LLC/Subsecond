@@ -38,6 +38,10 @@ interface Subsecond extends Iterable<SubsecondNode> {
   before(newNode: string): Subsecond;
   after(newNode: string): Subsecond;
 
+  prepend(newNode: string): Subsecond;
+  append(newNode: string): Subsecond;
+  insertAt(position: number, newNode: string): Subsecond;
+
   lines(): number;
 
   eq(index: number): Subsecond;
@@ -157,6 +161,25 @@ Subsecond.fn = Subsecond.prototype = {
     }
 
     return this;
+  },
+
+  prepend(newNode) {
+    return this.children().eq(0).before(newNode);
+  },
+
+  append(newNode) {
+    const children = this.children();
+
+    return children.eq(children.length - 1).after(newNode);
+  },
+
+  insertAt(position, newNode) {
+    const children = this.children();
+
+    if(children.length <= position)
+      return children.eq(children.length - 1).after(newNode);
+
+    return this.children().eq(position).before(newNode);
   },
 
   parent(selector) {
