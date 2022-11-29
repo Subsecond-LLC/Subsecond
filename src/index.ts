@@ -215,6 +215,18 @@ Subsecond.fn = Subsecond.prototype = {
     // TODO implement
     if (typeof selector === 'string') {
       const requests = SubsecondInternals.translateSelector(selector);
+      const parentResults: SubsecondNode[] = [];
+      for(const ssNode of this) {
+        let ancestor = ssNode.esNode.parent ?? ssNode.esNode;
+        while(!SubsecondInternals.applyRequests(requests, ancestor, ssNode.fileName) && ancestor.type !== 'Program') {
+          ancestor = ancestor.parent ?? ancestor;
+        }
+        parentResults.push({
+          esNode: ancestor,
+          fileName: ssNode.fileName,
+        });
+      }
+      return Subsecond(parentResults);
     }
 
     return this;
@@ -267,7 +279,7 @@ Subsecond.fn = Subsecond.prototype = {
     const text = this.text();
     const newSourceFile = parse(text, {
       range: true,
-      jsx: SubsecondInternals.isFileNameJSX(fileName),
+      jsx: true, // a lot of peolp mean jsx but say js, so I'm fixing this to true.
     });
     Subsecond.sourceFiles[fileName] = newSourceFile;
     Subsecond.sourceTexts[fileName] = text;
@@ -395,8 +407,11 @@ const SubsecondInternals = {
         const trimmedPart = requestPart.trim();
         if (trimmedPart.includes('.')) {
           const firstDotPosition = trimmedPart.indexOf('.');
+          let kind = trimmedPart.slice(0, firstDotPosition);
+          // empty dot defaults to an Identifier.
+          if(kind.length === 0) kind = 'Identifier';
           return {
-            kind: trimmedPart.slice(0, firstDotPosition),
+            kind,
             name: trimmedPart.slice(firstDotPosition + 1),
           };
         }
@@ -478,7 +493,7 @@ const SubsecondInternals = {
     if (ssNode.esNode.parent?.type === 'ObjectExpression') {
       const newNode = parse(`({${text}})`, {
         range: true,
-        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+        jsx: true,
       });
       simpleTraverse(newNode, {
         enter: (node) => {
@@ -492,7 +507,7 @@ const SubsecondInternals = {
     } else if (ssNode.esNode.parent?.type === 'JSXOpeningElement') {
       const newNode = parse(`<X ${text}/>`, {
         range: true,
-        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+        jsx: true,
       });
       simpleTraverse(newNode, {
         enter: (node) => {
@@ -503,11 +518,25 @@ const SubsecondInternals = {
 
       // TODO Consider the multi element case...
       newNodes = (newNode.body[0] as any).expression.openingElement.attributes;
+    } else if (ssNode.esNode.parent?.type === 'JSXElement') {
+      const newNode = parse(`<X>${text}</X>`, {
+        range: true,
+        jsx: true,
+      });
+      simpleTraverse(newNode, {
+        enter: (node) => {
+          node.range[0] += insertPoint - 3;
+          node.range[1] += insertPoint - 3;
+        },
+      });
+
+      // TODO Opening and closing element replace???
+      newNodes = (newNode.body[0] as any).expression.children;
     } else {
       // default case for all others
       const newNode = parse(text, {
         range: true,
-        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+        jsx: true,
       });
       simpleTraverse(newNode, {
         enter: (node) => {
@@ -583,7 +612,7 @@ const SubsecondInternals = {
     if (ssNode.esNode.parent?.type === 'ObjectExpression') {
       const newNode = parse(`({${text}})`, {
         range: true,
-        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+        jsx: true,
       });
       simpleTraverse(newNode, {
         enter: (node) => {
@@ -597,7 +626,7 @@ const SubsecondInternals = {
     } else if (ssNode.esNode.parent?.type === 'JSXOpeningElement') {
       const newNode = parse(`<X ${text}/>`, {
         range: true,
-        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+        jsx: true,
       });
       simpleTraverse(newNode, {
         enter: (node) => {
@@ -609,13 +638,27 @@ const SubsecondInternals = {
       // TODO Consider the multi element case...
       replacementNode = (newNode.body[0] as any).expression.openingElement
         .attributes;
+    } else if (ssNode.esNode.parent?.type === 'JSXElement') {
+      const newNode = parse(`<X>${text}</X>`, {
+        range: true,
+        jsx: true,
+      });
+      simpleTraverse(newNode, {
+        enter: (node) => {
+          node.range[0] += start - 3;
+          node.range[1] += start - 3;
+        },
+      });
+
+      // TODO Opening and closing element replace???
+      replacementNode = (newNode.body[0] as any).expression.children;
     } else if(ssNode.esNode.parent?.type === 'TemplateLiteral' && ssNode.esNode.type === 'TemplateElement') {
       const textPrefix = previousText[0] === '`' ? '    ' : '`${0';
       const textPostfix = previousText[previousText.length - 1] === '`' ? '   ' : '0}`';
 
       const newNode = parse(`${textPrefix}${text}${textPostfix}`, {
         range: true,
-        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+        jsx: true,
       });
       simpleTraverse(newNode, {
         enter: (node) => {
@@ -631,7 +674,7 @@ const SubsecondInternals = {
       // default case for all others
       const newNode = parse(text, {
         range: true,
-        jsx: SubsecondInternals.isFileNameJSX(ssNode.fileName),
+        jsx: true,
       });
       simpleTraverse(newNode, {
         enter: (node) => {
@@ -726,10 +769,14 @@ Subsecond.load = function (
   // TODO detect scriptkind and decide target somehow.
   this.sourceTexts = files;
   for (const fileName in files) {
+    try {
     this.sourceFiles[fileName] = parse(files[fileName], {
       range: true,
-      jsx: SubsecondInternals.isFileNameJSX(fileName),
+      jsx: true,
     });
+    } catch(e) {
+      console.warn(`Skipped ${fileName} with error: ${e}`);
+    }
   }
 
   return this;
