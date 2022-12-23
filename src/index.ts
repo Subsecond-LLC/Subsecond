@@ -301,7 +301,7 @@ Subsecond.fn = Subsecond.prototype = {
   },
 
   eq(this: SubsecondThis, index) {
-    return Subsecond(this[index]);
+    return Subsecond(this[index] ?? []);
   },
 
   each(callback) {
