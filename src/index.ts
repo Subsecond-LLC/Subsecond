@@ -176,7 +176,7 @@ Subsecond.fn = Subsecond.prototype = {
   insertAt(position, newNode) {
     const children = this.children();
 
-    if(children.length <= position)
+    if (children.length <= position)
       return children.eq(children.length - 1).after(newNode);
 
     return this.children().eq(position).before(newNode);
@@ -216,9 +216,16 @@ Subsecond.fn = Subsecond.prototype = {
     if (typeof selector === 'string') {
       const requests = SubsecondInternals.translateSelector(selector);
       const parentResults: SubsecondNode[] = [];
-      for(const ssNode of this) {
+      for (const ssNode of this) {
         let ancestor = ssNode.esNode.parent ?? ssNode.esNode;
-        while(!SubsecondInternals.applyRequests(requests, ancestor, ssNode.fileName) && ancestor.type !== 'Program') {
+        while (
+          !SubsecondInternals.applyRequests(
+            requests,
+            ancestor,
+            ssNode.fileName
+          ) &&
+          ancestor.type !== 'Program'
+        ) {
           ancestor = ancestor.parent ?? ancestor;
         }
         parentResults.push({
@@ -340,12 +347,20 @@ const SubsecondInternals = {
     return value !== null && value !== undefined;
   },
 
+  translateSubsecondKindToESTreeKinds(kind?: string | null): string[] {
+    if (kind == null) return [];
+    if (kind === 'AnyIdentifier') return ['Identifier', 'JSXIdentifier'];
+    return [kind];
+  },
+
   applyRequests(requests: Request[], esNode: TSESTree.Node, fileName: string) {
     return requests.some((request) => {
       const lastRequestPart = request[request.length - 1];
 
       if (
-        lastRequestPart.kind === esNode.type &&
+        SubsecondInternals.translateSubsecondKindToESTreeKinds(
+          lastRequestPart.kind
+        ).includes(esNode.type) &&
         (lastRequestPart.name == null ||
           lastRequestPart.name ===
             SubsecondInternals.getSSNodeText(
@@ -353,14 +368,16 @@ const SubsecondInternals = {
             ))
       ) {
         // the top level request is matched, now we need to parse through parents to match everything else.
-        if(request.length === 1) return true;
-        
+        if (request.length === 1) return true;
+
         let esNodeParent = esNode.parent;
         let currentRequestPartIndex = request.length - 2;
         while (esNodeParent != null) {
           if (currentRequestPartIndex === -1) return true;
           if (
-            request[currentRequestPartIndex].kind === esNodeParent.type &&
+            SubsecondInternals.translateSubsecondKindToESTreeKinds(
+              request[currentRequestPartIndex].kind
+            ).includes(esNodeParent.type) &&
             (request[currentRequestPartIndex].name == null ||
               request[currentRequestPartIndex].name ===
                 SubsecondInternals.getSSNodeText(
@@ -408,8 +425,8 @@ const SubsecondInternals = {
         if (trimmedPart.includes('.')) {
           const firstDotPosition = trimmedPart.indexOf('.');
           let kind = trimmedPart.slice(0, firstDotPosition);
-          // empty dot defaults to an Identifier.
-          if(kind.length === 0) kind = 'Identifier';
+          // empty dot matches with any identifier.
+          if (kind.length === 0) kind = 'AnyIdentifier';
           return {
             kind,
             name: trimmedPart.slice(firstDotPosition + 1),
@@ -577,7 +594,10 @@ const SubsecondInternals = {
     const start = ssNode.esNode.range[0];
     const end = ssNode.esNode.range[1];
     const delta = text.length - (end - start);
-    const previousText = Subsecond.sourceTexts[ssNode.fileName].slice(start, end);
+    const previousText = Subsecond.sourceTexts[ssNode.fileName].slice(
+      start,
+      end
+    );
 
     Subsecond.sourceTexts[ssNode.fileName] =
       Subsecond.sourceTexts[ssNode.fileName].slice(0, start) +
@@ -652,9 +672,13 @@ const SubsecondInternals = {
 
       // TODO Opening and closing element replace???
       replacementNode = (newNode.body[0] as any).expression.children;
-    } else if(ssNode.esNode.parent?.type === 'TemplateLiteral' && ssNode.esNode.type === 'TemplateElement') {
+    } else if (
+      ssNode.esNode.parent?.type === 'TemplateLiteral' &&
+      ssNode.esNode.type === 'TemplateElement'
+    ) {
       const textPrefix = previousText[0] === '`' ? '    ' : '`${0';
-      const textPostfix = previousText[previousText.length - 1] === '`' ? '   ' : '0}`';
+      const textPostfix =
+        previousText[previousText.length - 1] === '`' ? '   ' : '0}`';
 
       const newNode = parse(`${textPrefix}${text}${textPostfix}`, {
         range: true,
@@ -770,11 +794,11 @@ Subsecond.load = function (
   this.sourceTexts = files;
   for (const fileName in files) {
     try {
-    this.sourceFiles[fileName] = parse(files[fileName], {
-      range: true,
-      jsx: true,
-    });
-    } catch(e) {
+      this.sourceFiles[fileName] = parse(files[fileName], {
+        range: true,
+        jsx: true,
+      });
+    } catch (e) {
       console.warn(`Skipped ${fileName} with error: ${e}`);
     }
   }
@@ -826,7 +850,7 @@ init = Subsecond.fn.init = function (
   context?: Subsecond
 ): [key: SubsecondNode] {
   if (selector === undefined) {
-    selector = 'Program'
+    selector = 'Program';
   }
 
   // duck type check of ssNode instanation method
@@ -882,4 +906,4 @@ export default Subsecond;
 module.exports = Subsecond;
 module.exports.default = Subsecond;
 
-Object.defineProperty(module.exports, '__esModule', {value: true});
+Object.defineProperty(module.exports, '__esModule', { value: true });
