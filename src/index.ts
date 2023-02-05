@@ -799,7 +799,17 @@ Subsecond.load = function (
         jsx: true,
       });
     } catch (e) {
-      console.warn(`Skipped ${fileName} with error: ${e}`);
+      console.log(
+        `Error loading with ${fileName} using JSX, trying again with pure JS.`
+      );
+      try {
+        this.sourceFiles[fileName] = parse(files[fileName], {
+          range: true,
+          jsx: false,
+        });
+      } catch (e2) {
+        console.warn(`Skipped ${fileName} with error: ${e2}`);
+      }
     }
   }
 
