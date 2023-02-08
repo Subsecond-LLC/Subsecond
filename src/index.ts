@@ -829,7 +829,10 @@ Subsecond.getNodeAt = function (pos: number, fileName: string) {
     Subsecond.sourceFiles[fileName],
     {
       enter: (node) => {
-        if (node.range[0] <= pos && node.range[1] > pos)
+        if (
+          (node.range[0] <= pos && node.range[1] > pos) ||
+          node.type === 'Program'
+        )
           overlappingNodes.push(node);
       },
     },
